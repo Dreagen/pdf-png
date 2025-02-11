@@ -1,7 +1,14 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
 use image::ImageReader;
 use serde::{Deserialize, Serialize};
-use std::{env, error::Error, fs, path::Path, vec};
+use std::{
+    env,
+    error::Error,
+    fs::{self, File},
+    io::Read,
+    path::Path,
+    vec,
+};
 
 #[derive(Serialize, Deserialize, Debug)]
 struct ImageUrl {
@@ -79,28 +86,7 @@ fn create_payload(old_images: &Vec<String>, new_images: &Vec<String>) -> Payload
         role: "system".to_string(),
         content: vec![MessageContent {
             content_type: "text".to_string(),
-            text: Option::Some(
-                r#"
-You are responsible for checking financial documents specifically KID documents, to check the latest version of the document against the previous version and come up with a summary of the differences if there are any. These will come as png images representing the pdf, you will get up to 3 png images for the old document called old-0.png, old-1.png etc and up to 3 png images for the new document called new-0.png, new-1.png
- 
-If the documents are not for the same fund, then please return an error
- 
-I'd like you to respond with the following format, your summary should include the changes to the values descibed in a simple paragraph, then changes should also be included in the changes array of the json
- 
-{
-"Summary": <Input your summary here>
-"Changes":
-[
-{
-"Key": <Make this some descriptive key of the item that changed>
-"OldValue": <The value in the old document>
-"NewValue": <The value in the new document>
-}
-]
-}
- 
-unless it's a error, then just a plain text error will do"#.to_string(),
-            ),
+            text: Option::Some(get_prompt()),
             image_url: Option::None,
         }],
     });
@@ -145,8 +131,9 @@ unless it's a error, then just a plain text error will do"#.to_string(),
     }
 }
 
-// payload="{\"messages\":[{\"role\":\"system\",\"content\":[{\"type\":\"text\",\"text\":\"You are responsible for checking financial documents specifically KID documents, to check the latest version of the document against the previous version and come up with a summary of the differences if there are any. These will come as png images representing the pdf, you will get up to 3 png images for the old document called old-0.png, old-1.png etc and up to 3 png images for the new document called new-0.png, new-1.png\\n \\nIf the documents are not for the same fund, then please return an error\\n \\nI'd like you to respond with the following format, your summary should include the changes to the values descibed in a simple paragraph, then changes should also be included in the changes array of the json\\n \\n{\\n\\\"Summary\\\": <Input your summary here>\\n\\\"Changes\\\":\\n[\\n{\\n\\\"Key\\\": <Make this some descriptive key of the item that changed>\\n\\\"OldValue\\\": <The value in the old document>\\n\\\"NewValue\\\": <The value in the new document>\\n}\\n]\\n}\\n \\nunless it's a error, then just a plain text error will do\"}]}],\"temperature\":0.7,\"top_p\":0.95,\"max_tokens\":800}"
-//    curl "https://nick-openai-test-2.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-15-preview" \
-//   -H "Content-Type: application/json" \
-//   -H "api-key: YOUR_API_KEY" \
-//   -d "$payload"
+fn get_prompt() -> String {
+    let mut file = File::open("prompt.txt").expect("Please create prompt.txt in root directory");
+    let mut contents = String::new();
+    file.read_to_string(&mut contents).unwrap();
+    contents
+}
