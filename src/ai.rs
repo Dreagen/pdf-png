@@ -1,11 +1,12 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
 use image::ImageReader;
 use serde::{Deserialize, Serialize};
+use serde_json::{to_string, Value};
 use std::{
     env,
     error::Error,
     fs::{self, File},
-    io::Read,
+    io::{Cursor, Read},
     path::Path,
     vec,
 };
@@ -38,7 +39,7 @@ struct Payload {
 }
 
 pub async fn generate_comparisons() -> Result<String, Box<dyn Error>> {
-    println!("generating comparisons...");
+    // println!("generating comparisons...");
 
     let old_images = get_images_as_base64(Path::new("output/old"));
     let new_images = get_images_as_base64(Path::new("output/new"));
@@ -56,27 +57,38 @@ pub async fn generate_comparisons() -> Result<String, Box<dyn Error>> {
         .text()
         .await?;
 
-    println!("done generating comparisons");
+    // println!("done generating comparisons");
 
-    Ok(res)
+    let v: Value = serde_json::from_str(&res)?;
+    let v_clone = v.clone();
+
+    if let Some(content) = v_clone["choices"][0]["message"]["content"].as_str() {
+        return Ok(to_string(content)?);
+    } else {
+        panic!("Could not get content from response");
+    }
 }
 
 fn get_images_as_base64(path: &Path) -> Vec<String> {
     let mut base64_images = vec![];
     for dir_entry_result in fs::read_dir(path).unwrap() {
         let dir_entry = dir_entry_result.unwrap();
-        let image = ImageReader::open(dir_entry.path())
+        let image_path = dir_entry.path();
+        let image = ImageReader::open(&image_path)
             .expect("file was not an image")
             .decode()
             .expect("could not decode image");
 
-        let bytes = image.into_bytes();
-        let encode = BASE64_STANDARD.encode(&bytes);
+        let mut bytes = Cursor::new(Vec::new());
+        image
+            .write_to(&mut bytes, image::ImageFormat::Png)
+            .expect("could not write image to bytes");
+        let base64_encoded_data = BASE64_STANDARD.encode(&bytes.into_inner());
 
-        base64_images.push(encode);
+        base64_images.push(base64_encoded_data);
     }
 
-    return base64_images;
+    base64_images
 }
 
 fn create_payload(old_images: &Vec<String>, new_images: &Vec<String>) -> Payload {
@@ -103,7 +115,7 @@ fn create_payload(old_images: &Vec<String>, new_images: &Vec<String>) -> Payload
             content_type: "image_url".to_string(),
             text: Option::None,
             image_url: Option::Some(ImageUrl {
-                url: image.to_string(),
+                url: format!("data:image/png;base64,{}", image.to_string()),
             }),
         });
     }
@@ -113,7 +125,7 @@ fn create_payload(old_images: &Vec<String>, new_images: &Vec<String>) -> Payload
             content_type: "image_url".to_string(),
             text: Option::None,
             image_url: Option::Some(ImageUrl {
-                url: image.to_string(),
+                url: format!("data:image/png;base64,{}", image.to_string()),
             }),
         });
     }

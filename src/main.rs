@@ -11,7 +11,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     pdf_generation::convert_pdfs_to_pngs();
     let generate_comparisons_result = ai::generate_comparisons().await?;
 
-    println!("Result: {}", generate_comparisons_result);
+    println!("{}", generate_comparisons_result);
 
     Ok(())
 }

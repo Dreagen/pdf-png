@@ -2,8 +2,8 @@ use std::{fs, path::Path};
 
 use pdfium_render::prelude::{PdfRenderConfig, Pdfium, PdfiumError};
 
-const GREEN: &str = "\x1b[32m";
-const RESET: &str = "\x1b[0m";
+// const GREEN: &str = "\x1b[32m";
+// const RESET: &str = "\x1b[0m";
 
 pub fn convert_pdfs_to_pngs() {
     let input_dir_new = Path::new("input/new");
@@ -23,7 +23,7 @@ pub fn convert_pdfs_to_pngs() {
                     String::from("new"),
                     Option::None,
                 ) {
-                    Ok(_) => println!("{}Success{}", GREEN, RESET),
+                    Ok(_) => {} //println!("{}Success{}", GREEN, RESET),
                     Err(err) => println!("failed converting pdf to pngs: {}", err),
                 }
             }
@@ -42,7 +42,7 @@ pub fn convert_pdfs_to_pngs() {
                     String::from("old"),
                     Option::None,
                 ) {
-                    Ok(_) => println!("{}Success{}", GREEN, RESET),
+                    Ok(_) => {} //println!("{}Success{}", GREEN, RESET),
                     Err(err) => println!("failed converting pdf to pngs: {}", err),
                 }
             }
@@ -79,11 +79,11 @@ fn export_pdf_to_jpegs(
     let render_config = PdfRenderConfig::new();
 
     for (index, page) in document.pages().iter().enumerate() {
-        println!(
-            "Generating image {} for {}",
-            index + 1,
-            pdf_path.as_ref().display()
-        );
+        // println!(
+        //     "Generating image {} for {}",
+        //     index + 1,
+        //     pdf_path.as_ref().display()
+        // );
         page.render_with_config(&render_config)?
             .as_image()
             .into_rgb8()
