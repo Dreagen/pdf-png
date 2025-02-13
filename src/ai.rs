@@ -1,7 +1,8 @@
 use base64::{prelude::BASE64_STANDARD, Engine};
 use image::ImageReader;
+use reqwest::{Response, StatusCode};
 use serde::{Deserialize, Serialize};
-use serde_json::{to_string, Value};
+use serde_json::Value;
 use std::{
     env,
     error::Error,
@@ -39,7 +40,8 @@ struct Payload {
 }
 
 pub async fn generate_comparisons() -> Result<String, Box<dyn Error>> {
-    // println!("generating comparisons...");
+    println!();
+    println!("Generating comparisons...");
 
     let old_images = get_images_as_base64(Path::new("output/old"));
     let new_images = get_images_as_base64(Path::new("output/new"));
@@ -53,19 +55,22 @@ pub async fn generate_comparisons() -> Result<String, Box<dyn Error>> {
         .header("api-key", format!("{}", key))
         .json(&json)
         .send()
-        .await?
-        .text()
         .await?;
 
-    // println!("done generating comparisons");
-
-    let v: Value = serde_json::from_str(&res)?;
-    let v_clone = v.clone();
-
-    if let Some(content) = v_clone["choices"][0]["message"]["content"].as_str() {
-        return Ok(to_string(content)?);
+    if res.status() == StatusCode::TOO_MANY_REQUESTS {
+        let bytes = res.bytes().await.unwrap();
+        let text = String::from_utf8_lossy(&bytes);
+        panic!("{}", text);
     } else {
-        panic!("Could not get content from response");
+        let text = res.error_for_status()?.text().await?;
+
+        let v: Value = serde_json::from_str(&text)?;
+
+        if let Some(content) = v["choices"][0]["message"]["content"].as_str() {
+            return Ok(content.to_string());
+        } else {
+            panic!("Could not get content from response");
+        }
     }
 }
 

@@ -5,6 +5,7 @@ If the documents are not for the same fund, then please return an error
 I'd like you to respond with the following format, your summary should include the changes to the values descibed in a simple paragraph, then changes should also be included in the changes array of the json
  
 {
+"Isin": <The ISIN of the share class>
 "Summary": <Input your summary here>
 "Changes":
 [
@@ -16,4 +17,8 @@ I'd like you to respond with the following format, your summary should include t
 ]
 }
  
-unless it's a error, then just a plain text error will do
+If the documents are not for the same share class then please return the following
+ 
+{
+"Summary": "Documents are not for the same share class"
+}
